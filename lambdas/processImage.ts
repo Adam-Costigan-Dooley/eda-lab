@@ -15,26 +15,21 @@ const ddbDocClient = createDDbDocClient();
 
 export const handler: SQSHandler = async (event) => {
   console.log("Event ", JSON.stringify(event));
+
   for (const record of event.Records) {
-    // Parse SQS message
     const recordBody = JSON.parse(record.body);
-    // Parse SNS message
-    const snsMessage = JSON.parse(recordBody.Message);
 
-    if (snsMessage.Records) {
-      console.log("Record body ", JSON.stringify(snsMessage));
+    if (recordBody.Records) {
+      console.log("Record body ", JSON.stringify(recordBody));
 
-      for (const s3Message of snsMessage.Records) {
+      for (const s3Message of recordBody.Records) {
         const s3e = s3Message.s3;
-        // Object key may have spaces or unicode non-ASCII characters.
         const srcKey = decodeURIComponent(s3e.object.key.replace(/\+/g, " "));
-        // Infer the image type from the file suffix.
         const typeMatch = srcKey.match(/\.([^.]*)$/);
         if (!typeMatch) {
           console.log("Could not determine the image type.");
           throw new Error("Could not determine the image type.");
         }
-        // Check that the image type is supported
         const imageType = typeMatch[1].toLowerCase();
         if (imageType != "jpeg" && imageType != "png") {
           throw new Error(`Unsupported image type: ${imageType}.`);
